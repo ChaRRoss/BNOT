@@ -2,54 +2,73 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class NinjaStar : MonoBehaviour
+public class NinjaStar : IWeapon
 {
-    public Rigidbody2D ThrowingStar;              // Prefab of the rocket.
-    public float speed = 20f;               // The speed the rocket will fire at.
-
-
+    [SerializeField] protected Rigidbody2D[] Bullets;
+    [SerializeField] protected Rigidbody2D Bullet;
+    public float speed;               // The speed the bullet will fire at.
+    public Transform bulletSpawnLoc;  // The position the bullet will fire from
+    public float reloadTime;          // The time it takes to reload the weapon
 
     private PlayerController playerCtrl;       // Reference to the PlayerControl script.
-    private Animator anim;                  // Reference to the Animator component.
+    private Animator anim;                     // Reference to the Animator component.
+    private AudioSource audio;                 // Reference to the Audio component.
 
+    bool canFire = true;                       // Condition for that controls whether the player can shoot
+    public bool CanShootNextBurst;             // Condition for if they can fire a burst of projectiles
+    public float burstDelay;                   // Time between bursts
 
     void Awake()
     {
-        // Setting up the references.
-        anim = transform.parent.gameObject.GetComponent<Animator>();
-        playerCtrl = transform.parent.GetComponent<PlayerController>();
+        
     }
 
 
     void Update()
     {
-        if(!playerCtrl.isReloading)
-        // If the fire button is pressed...
-        if (Input.GetButtonDown("Fire1_P2"))
+        if (!playerCtrl.isReloading)
         {
-                // ... set the animator Shoot trigger parameter and play the audioclip.
-                playerCtrl.Ammo--;
-            anim.SetBool("Shooting", true);
-            //audio.Play();
-
-            // If the player is facing right...
-            if (playerCtrl.IsFacingRight)
+        // If the specified button for reload is pressed - disable firing and start coroutine
+            if (Input.GetButtonDown("Reload_P" + (playerCtrl.Identifier + 1)))
             {
-                // ... instantiate the rocket facing right and set it's velocity to the right. 
-                Rigidbody2D bulletInstance = Instantiate(ThrowingStar, transform.position, Quaternion.Euler(new Vector3(0, 0, 0))) as Rigidbody2D;
-                bulletInstance.gameObject.GetComponent<Projectile>().whoShotMe = transform.parent.gameObject.GetComponent<PlayerController>();
-                bulletInstance.velocity = new Vector2(speed, 0);
-                Destroy(bulletInstance.gameObject, 2);
+                playerCtrl.isReloading = true;
+                StartCoroutine(playerCtrl.Reload(reloadTime)); // Coroutine called with a specified time to wait
             }
-            else
+
+            if (CanShootNextBurst && canFire) //check if a player can fire a burst 
             {
-                // Otherwise instantiate the rocket facing left and set it's velocity to the left.
-                Rigidbody2D bulletInstance = Instantiate(ThrowingStar, transform.position, Quaternion.Euler(new Vector3(0, 0, 180f))) as Rigidbody2D;
-                bulletInstance.gameObject.GetComponent<Projectile>().whoShotMe = transform.parent.gameObject.GetComponent<PlayerController>();
-                bulletInstance.velocity = new Vector2(-speed, 0);
-                Destroy(bulletInstance.gameObject, 2);
+                if (Input.GetAxis("Fire1_P" + (playerCtrl.Identifier + 1)) < -0.98f)
+                {
+                    playerCtrl.Ammo--;
+                    anim.SetBool("Shooting", true);
+                    audio.Play();
+                    CanShootNextBurst = false;
+                    StartCoroutine(Burst());
+                    canFire = false;
+                }
             }
         }
-        
+    }
+
+    IEnumerator Burst()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (playerCtrl.IsFacingRight) { }
+                // ... instantiate the rocket facing right and set it's velocity to the right. 
+               // SpawnRightFacingBullet();
+            else
+                // Otherwise instantiate the rocket facing left and set it's velocity to the left.
+                //SpawnLeftFacingBullet();
+            yield return new WaitForSeconds(.05f);
+        }
+        anim.SetBool("Shooting", false);
+        StartCoroutine(BurstDelay());
+    }
+
+    IEnumerator BurstDelay()
+    {
+        yield return new WaitForSeconds(burstDelay);
+        CanShootNextBurst = true;
     }
 }
