@@ -14,6 +14,7 @@ public class Projectile : MonoBehaviour {
             if(!isPoisonous)
                 if (col.gameObject.tag == ("Player"))
                 {
+                    col.gameObject.GetComponent<PlayerController>().playerWhoShotMe = whoShotMe;
                     col.gameObject.GetComponent<Health>().TakeDamage(Damage);
                 }
             if (isPoisonous)

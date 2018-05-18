@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class Health : MonoBehaviour
 {
+    //Event script to handle player death by broadcasting event to gamemanager when player dies
+    public delegate void CheckForKillPlayer();
+    public static event CheckForKillPlayer OnCheckKillPlayer;
+
     public const float maxHealth = 1;
     public float currentHealth = maxHealth;
     public bool poisoned;
@@ -16,7 +20,7 @@ public class Health : MonoBehaviour
         if (currentHealth <= 0)
         {
             currentHealth = 0;
-
+            OnCheckKillPlayer();
         }
     }
 
@@ -31,7 +35,10 @@ public class Health : MonoBehaviour
         if (poisoned)
         {
             if (poisonTimer > 0)
+            {
                 poisonTimer -= Time.deltaTime;
+                OnCheckKillPlayer();
+            }
             else
             {
                 poisoned = !poisoned;

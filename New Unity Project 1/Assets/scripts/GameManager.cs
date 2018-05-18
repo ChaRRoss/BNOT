@@ -23,9 +23,9 @@ public class GameManager : MonoBehaviour {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         GameIsOn = true;
-        players = new PlayerController[FindObjectsOfType<PlayerController>().Length];
-        playersTemp = FindObjectsOfType<PlayerController>();
-        for (int i = 0; i < playersTemp.Length; i++)
+        players = new PlayerController[FindObjectsOfType<PlayerController>().Length]; //create an empty array of the number of players in the scene
+        playersTemp = FindObjectsOfType<PlayerController>(); // get the list of all the player controllers
+        for (int i = 0; i < playersTemp.Length; i++) //sort through the playersTemp based on Identifier and assign to players array position
         {
             players[playersTemp[i].Identifier] = playersTemp[i];
 
@@ -43,43 +43,12 @@ public class GameManager : MonoBehaviour {
     // Use this for initialization
     void Start () {
         UI = GetComponent<UIManager>();
+        Health.OnCheckKillPlayer += CheckForDeadPlayers;
     }
 
     // Update is called once per frame
     void Update() {
-        
-        for (int i = 0; i < players.Length; i++)
-        {
-            if (players[i] != null && GameIsOn)
-            {
-                if (players[i].GetComponent<Health>().currentHealth <= 0.001)
-                {
-                    if (players[i].playerWhoShotMe != null)
-                    {
-                        players[i].playerWhoShotMe.KillCount++;
-                        players[i].playerWhoShotMe.KillList.Add(players[i].ptype);
-                    }
-                    KillPlayer(i);
-                    players[i].playerWhoShotMe = null;
-                    players[i].GetComponent<Health>().currentHealth = 1;
-                    players[i].Ammo = players[i].AmmoTicks.Length;
-                    players[i].GetComponent<Health>().poisoned = false;
-                }
-            }
-            if (players[i].KillCount >= 10 && !GameIsOn && !GameHasEnded)
-            {
-                for (int j = 0; j < 3-playersToDeactivate; j++)
-                {
-                    if (i != j)
-                    {
-                        players[j].GetComponent<Health>().currentHealth = 0;
-                        KillPlayer(j);
-                    }
-                }
-                GameHasEnded = true;
-                EndRound(i);
-            }
-        }
+
     }
 
     private void KillPlayer(int playerIndex)
@@ -105,5 +74,46 @@ public class GameManager : MonoBehaviour {
     private void EndRound(int winner)
     {
         UI.DisplayEndRound(winner);
+    }
+
+    private void CheckForDeadPlayers()
+    {
+        //see if any of the players are dead - which we know at least one is
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (players[i] != null && GameIsOn)
+            {
+                if (players[i].GetComponent<Health>().currentHealth <= 0.001)
+                {
+                    if (players[i].playerWhoShotMe != null)
+                    {
+                        players[i].playerWhoShotMe.KillCount++;
+                        players[i].playerWhoShotMe.KillList.Add(players[i].ptype);
+                    }
+                    KillPlayer(i);
+                    players[i].playerWhoShotMe = null;
+                    players[i].GetComponent<Health>().currentHealth = 1;
+                    players[i].Ammo = players[i].AmmoTicks.Length;
+                    players[i].GetComponent<Health>().poisoned = false;
+                }
+            }
+        }
+        //check through the list of players to see if any of them have 10 kills - if so end the game
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (players[i].KillCount >= 10 && !GameIsOn && !GameHasEnded)
+            {
+                for (int j = 0; j < 4 - playersToDeactivate; j++)
+                {
+                    if (i != j)
+                    {
+                        players[j].GetComponent<Health>().currentHealth = 0;
+                        KillPlayer(j);
+                    }
+                }
+                GameHasEnded = true;
+                EndRound(i);
+            }
+        }
     }
 }
